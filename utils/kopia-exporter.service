@@ -1,0 +1,12 @@
+# Systemd unit file for kopia exporter
+
+[Unit]
+Description=Kopia Exporter Service
+After=network.target
+
+[Service]
+ExecStart=/opt/kopia-exporter/.venv/bin/kopia-exporter --config-file=/root/.config/kopia/repository.config
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
