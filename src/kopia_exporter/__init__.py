@@ -5,7 +5,7 @@ import logging
 from typing import Dict, List
 
 from prometheus_client import Gauge, start_http_server
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 
 # Configuring logging
@@ -16,7 +16,8 @@ logging.basicConfig(
 
 
 def to_struct_time(ts: str) -> datetime:
-    return datetime.strptime(ts[:-4], "%Y-%m-%dT%H:%M:%S.%f")
+    d = datetime.strptime(ts[:-4], "%Y-%m-%dT%H:%M:%S.%f")
+    return d.replace(tzinfo=timezone.utc)
 
 
 def refresh_data() -> List[Dict[str, any]]:
@@ -84,28 +85,51 @@ backup_end_time_gauge = Gauge(
 # Example JSON data
 # data = [
 #     {
-#         "id": "442e0838851792b7109075a92663191c",
+#         "id": "618f83d08a9938351e8d385a24aca252",
 #         "source": {
 #             "host": "freenas",
 #             "userName": "root",
-#             "path": "/mnt/fsrevolution/k3vols/immich",
+#             "path": "/mnt/fsrevolution/media/pictures",
 #         },
 #         "description": "",
-#         "startTime": "2024-08-19T05:17:21.202557011Z",
-#         "endTime": "2024-08-19T05:17:58.528054855Z",
+#         "startTime": "2023-10-05T09:01:36.265095891Z",
+#         "endTime": "2023-10-05T09:01:55.028680144Z",
 #         "stats": {
-#             "totalSize": 429170451342,
+#             "totalSize": 162291781350,
 #             "excludedTotalSize": 0,
-#             "fileCount": 0,
-#             "cachedFiles": 517743,
-#             "nonCachedFiles": 0,
-#             "dirCount": 108296,
+#             "fileCount": 8054,
+#             "cachedFiles": 42506,
+#             "nonCachedFiles": 8054,
+#             "dirCount": 221,
 #             "excludedFileCount": 0,
 #             "excludedDirCount": 0,
 #             "ignoredErrorCount": 0,
 #             "errorCount": 0,
 #         },
-#     },
+#         "rootEntry": {
+#             "name": "pictures",
+#             "type": "d",
+#             "mode": "0775",
+#             "mtime": "2023-10-05T07:01:44.583769857Z",
+#             "obj": "kd4656c46f03377cbc01c2a7843f28b44",
+#             "summ": {
+#                 "size": 162291781350,
+#                 "files": 50560,
+#                 "symlinks": 0,
+#                 "dirs": 221,
+#                 "maxTime": "2023-10-05T07:01:18.627015144Z",
+#                 "numFailed": 0,
+#             },
+#         },
+#         "retentionReason": [
+#             "latest-1",
+#             "hourly-1",
+#             "daily-1",
+#             "weekly-1",
+#             "monthly-1",
+#             "annual-1",
+#         ],
+#     }
 #     # Add other JSON objects here
 # ]
 
