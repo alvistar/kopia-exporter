@@ -78,7 +78,7 @@ backup_start_time_gauge = Gauge(
 backup_end_time_gauge = Gauge(
     "backup_end_time",
     "Backup end time as unix timestamp",
-    ["id", "host", "path", "user"],
+    ["host", "path", "user"],
 )
 
 # Example JSON data
