@@ -20,8 +20,11 @@ def to_struct_time(ts: str) -> datetime:
     return d.replace(tzinfo=timezone.utc)
 
 
-def refresh_data() -> List[Dict[str, any]]:
+def refresh_data(config_file: str) -> List[Dict[str, any]]:
     command = "kopia snapshot list -n 1 --json"
+
+    if config_file:
+        command += f" --config-file {config_file}"
 
     logging.info(f"Running command: {command}")
 
@@ -136,13 +139,16 @@ backup_end_time_gauge = Gauge(
 
 @click.command()
 @click.option("--port", default=8123, help="The port to listen on.")
-def main(port):
+@click.option(
+    "--config-file", default="", help="The kopia config file to use.", type=click.Path()
+)
+def main(port, config_file):
     # Start the HTTP server to expose metrics
     logging.info(f"Listening on port {port}")
     start_http_server(port)
 
     while True:
-        data = refresh_data()
+        data = refresh_data(config_file)
         for entry in data:
             # Extract data
             host = entry["source"]["host"]
