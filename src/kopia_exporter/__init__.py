@@ -1,4 +1,5 @@
 import json
+import click
 import subprocess
 import logging
 from typing import Dict, List
@@ -109,9 +110,12 @@ backup_end_time_gauge = Gauge(
 # ]
 
 
-def main():
+@click.command()
+@click.option("--port", default=8123, help="The port to listen on.")
+def main(port):
     # Start the HTTP server to expose metrics
-    start_http_server(8000)
+    logging.info(f"Listening on port {port}")
+    start_http_server(port)
 
     while True:
         data = refresh_data()

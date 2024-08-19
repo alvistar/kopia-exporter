@@ -12,6 +12,8 @@
 -e file:.
 cfgv==3.4.0
     # via pre-commit
+click==8.1.7
+    # via kopia-exporter
 distlib==0.3.8
     # via virtualenv
 filelock==3.15.4

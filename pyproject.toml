@@ -7,6 +7,7 @@ authors = [
 ]
 dependencies = [
     "prometheus-client>=0.20.0",
+    "click>=8.1.7",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
