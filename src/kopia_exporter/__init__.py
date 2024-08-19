@@ -32,14 +32,15 @@ def refresh_data() -> List[Dict[str, any]]:
 
     # Decode the output from bytes to string
     output = result.stdout.decode("utf-8")
+    error = result.stderr.decode("utf-8")
 
     # Load the string as a JSON object
     try:
         json_output = json.loads(output)
         return json_output
     except json.JSONDecodeError as e:
-        print(f"Failed to decode JSON: {e}")
-        print(f"Output was: {output}")
+        logging.error(f"Failed to decode JSON: {e}")
+        logging.error(f"Output was: {error}")
 
 
 # Define metrics
