@@ -48,32 +48,32 @@ def refresh_data() -> List[Dict[str, any]]:
 total_size_gauge = Gauge(
     "backup_total_size_bytes",
     "Total size of the backup in bytes",
-    ["id", "host", "path", "user"],
+    ["host", "path", "user"],
 )
 file_count_gauge = Gauge(
     "backup_file_count",
     "Total number of files in the backup",
-    ["id", "host", "path", "user"],
+    ["host", "path", "user"],
 )
 dir_count_gauge = Gauge(
     "backup_dir_count",
     "Total number of directories in the backup",
-    ["id", "host", "path", "user"],
+    ["host", "path", "user"],
 )
 error_count_gauge = Gauge(
     "backup_error_count",
     "Total number of errors encountered during the backup",
-    ["id", "host", "path", "user"],
+    ["host", "path", "user"],
 )
 backup_duration_gauge = Gauge(
     "backup_duration_seconds",
     "Duration of the backup in seconds",
-    ["id", "host", "path", "user"],
+    ["host", "path", "user"],
 )
 backup_start_time_gauge = Gauge(
     "backup_start_time",
     "Backup start time as unix timestamp",
-    ["id", "host", "path", "user"],
+    ["host", "path", "user"],
 )
 backup_end_time_gauge = Gauge(
     "backup_end_time",
@@ -121,7 +121,6 @@ def main(port):
         data = refresh_data()
         for entry in data:
             # Extract data
-            backup_id = entry["id"]
             host = entry["source"]["host"]
             path = entry["source"]["path"]
             user = entry["source"]["userName"]
@@ -137,27 +136,17 @@ def main(port):
             duration = (end_time - start_time).seconds
 
             # Update Prometheus metrics
-            total_size_gauge.labels(id=backup_id, host=host, path=path, user=user).set(
-                total_size
+            total_size_gauge.labels(host=host, path=path, user=user).set(total_size)
+            file_count_gauge.labels(host=host, path=path, user=user).set(file_count)
+            dir_count_gauge.labels(host=host, path=path, user=user).set(dir_count)
+            error_count_gauge.labels(host=host, path=path, user=user).set(error_count)
+            backup_duration_gauge.labels(host=host, path=path, user=user).set(duration)
+            backup_start_time_gauge.labels(host=host, path=path, user=user).set(
+                start_time.timestamp()
             )
-            file_count_gauge.labels(id=backup_id, host=host, path=path, user=user).set(
-                file_count
+            backup_end_time_gauge.labels(host=host, path=path, user=user).set(
+                end_time.timestamp()
             )
-            dir_count_gauge.labels(id=backup_id, host=host, path=path, user=user).set(
-                dir_count
-            )
-            error_count_gauge.labels(id=backup_id, host=host, path=path, user=user).set(
-                error_count
-            )
-            backup_duration_gauge.labels(
-                id=backup_id, host=host, path=path, user=user
-            ).set(duration)
-            backup_start_time_gauge.labels(
-                id=backup_id, host=host, path=path, user=user
-            ).set(start_time.timestamp())
-            backup_end_time_gauge.labels(
-                id=backup_id, host=host, path=path, user=user
-            ).set(end_time.timestamp())
 
         # Sleep for a bit before the next update (simulate periodic updates)
         time.sleep(600)
