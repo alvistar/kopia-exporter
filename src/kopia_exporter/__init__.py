@@ -4,20 +4,15 @@ import subprocess
 import logging
 from typing import Dict, List
 
-from prometheus_client import Gauge, start_http_server
-from datetime import datetime, timezone
 import time
+
+from kopia_exporter.metrics import Metrics
 
 # Configuring logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
-
-
-def to_struct_time(ts: str) -> datetime:
-    d = datetime.strptime(ts[:-4], "%Y-%m-%dT%H:%M:%S.%f")
-    return d.replace(tzinfo=timezone.utc)
 
 
 def refresh_data(config_file: str) -> List[Dict[str, any]]:
@@ -47,43 +42,6 @@ def refresh_data(config_file: str) -> List[Dict[str, any]]:
         logging.error(f"Failed to decode JSON: {e}")
         logging.error(f"Output was: {error}")
 
-
-# Define metrics
-total_size_gauge = Gauge(
-    "backup_total_size_bytes",
-    "Total size of the backup in bytes",
-    ["host", "path", "user"],
-)
-file_count_gauge = Gauge(
-    "backup_file_count",
-    "Total number of files in the backup",
-    ["host", "path", "user"],
-)
-dir_count_gauge = Gauge(
-    "backup_dir_count",
-    "Total number of directories in the backup",
-    ["host", "path", "user"],
-)
-error_count_gauge = Gauge(
-    "backup_error_count",
-    "Total number of errors encountered during the backup",
-    ["host", "path", "user"],
-)
-backup_duration_gauge = Gauge(
-    "backup_duration_seconds",
-    "Duration of the backup in seconds",
-    ["host", "path", "user"],
-)
-backup_start_time_gauge = Gauge(
-    "backup_start_time",
-    "Backup start time as unix timestamp",
-    ["host", "path", "user"],
-)
-backup_end_time_gauge = Gauge(
-    "backup_end_time",
-    "Backup end time as unix timestamp",
-    ["host", "path", "user"],
-)
 
 # Example JSON data
 # data = [
@@ -137,46 +95,70 @@ backup_end_time_gauge = Gauge(
 # ]
 
 
-@click.command()
+@click.group()
+def main():
+    pass
+
+
+@main.command()
 @click.option("--port", default=8123, help="The port to listen on.")
 @click.option(
     "--config-file", default="", help="The kopia config file to use.", type=click.Path()
 )
-def main(port, config_file):
+def server(port, config_file):
+    """Run in server mode.
+
+    This will run th exporter in server mode and will pull data from kopia repository
+    """
     # Start the HTTP server to expose metrics
     logging.info(f"Listening on port {port}")
-    start_http_server(port)
+
+    metrics = Metrics()
+    metrics.start_http_server(port)
 
     while True:
         data = refresh_data(config_file)
         for entry in data:
-            # Extract data
-            host = entry["source"]["host"]
-            path = entry["source"]["path"]
-            user = entry["source"]["userName"]
-            total_size = entry["stats"]["totalSize"]
-            file_count = entry["stats"]["fileCount"]
-            dir_count = entry["stats"]["dirCount"]
-            error_count = entry["stats"]["errorCount"]
-
-            # Calculate backup duration
-            start_time = to_struct_time(entry["startTime"])
-            end_time = to_struct_time(entry["endTime"])
-
-            duration = (end_time - start_time).seconds
-
-            # Update Prometheus metrics
-            total_size_gauge.labels(host=host, path=path, user=user).set(total_size)
-            file_count_gauge.labels(host=host, path=path, user=user).set(file_count)
-            dir_count_gauge.labels(host=host, path=path, user=user).set(dir_count)
-            error_count_gauge.labels(host=host, path=path, user=user).set(error_count)
-            backup_duration_gauge.labels(host=host, path=path, user=user).set(duration)
-            backup_start_time_gauge.labels(host=host, path=path, user=user).set(
-                start_time.timestamp()
-            )
-            backup_end_time_gauge.labels(host=host, path=path, user=user).set(
-                end_time.timestamp()
-            )
+            metrics.update_metrics(entry)
 
         # Sleep for a bit before the next update (simulate periodic updates)
         time.sleep(600)
+
+
+@main.command()
+@click.argument("path", type=click.Path())
+def snapshot(path):
+    """Create a kopia snapshot.
+
+    This will run kopia snapshot and send metrics to prometheus pushgateway
+    :return:
+    """
+    logging.info("Creating snapshot...")
+    command = f"kopia snapshot create --json {path}"
+
+    result = subprocess.run(command, shell=True, capture_output=True)
+
+    # Decode the output from bytes to string
+    output = result.stdout.decode("utf-8")
+    error = result.stderr.decode("utf-8")
+
+    if result.returncode != 0:
+        logging.error(f"Failed to create snapshot: {error}")
+        exit(1)
+
+    logging.info("Finished creating snapshot")
+
+    # Load the string as a JSON object
+    try:
+        json_output = json.loads(output)
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to decode JSON: {e}")
+        logging.error(f"Output was: {error}")
+        exit(1)
+
+    metrics = Metrics(default_registry=False)
+    metrics.update_and_push(
+        json_output, "pushgateway.cluster.thealvistar.com", "kopia-gw"
+    )
+
+    logging.info("Pushed metrics to pushgateway")
