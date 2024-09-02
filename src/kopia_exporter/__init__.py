@@ -1,6 +1,5 @@
 import json
 import click
-from click import echo
 import subprocess
 import logging
 from typing import Dict, List
@@ -138,15 +137,18 @@ def snapshot(path: str, zfs: str, override_source: str):
     """
 
     if zfs:
-        echo(f"Creating zfs snapshot {zfs}...")
+        click.echo(f"Creating zfs snapshot {zfs}...")
         command = f"zfs snapshot {zfs}"
         result = subprocess.run(command, shell=True, capture_output=True)
 
         if result.returncode != 0:
-            echo(f"Failed to create zfs snapshot: {result.stderr.decode('utf-8')}", err=True)
+            click.echo(
+                f"Failed to create zfs snapshot: {result.stderr.decode('utf-8')}",
+                err=True,
+            )
             exit(1)
 
-    echo("Creating kopia snapshot...")
+    click.echo("Creating kopia snapshot...")
     command = "kopia snapshot create --json"
 
     if override_source:
@@ -161,25 +163,28 @@ def snapshot(path: str, zfs: str, override_source: str):
     error = result.stderr.decode("utf-8")
 
     if result.returncode != 0:
-        echo(f"Failed to create snapshot: {error}", err=True)
+        click.echo(f"Failed to create snapshot: {error}", err=True)
         exit(1)
 
-    echo("Finished creating kopia snapshot")
+    click.echo("Finished creating kopia snapshot")
 
     if zfs:
-        echo(f"Destroying zfs snapshot {zfs}...")
+        click.echo(f"Destroying zfs snapshot {zfs}...")
         command = f"zfs destroy {zfs}"
         result = subprocess.run(command, shell=True, capture_output=True)
 
         if result.returncode != 0:
-            echo(f"Failed to destroy zfs snapshot: {result.stderr.decode('utf-8')}", err=True)
+            click.echo(
+                f"Failed to destroy zfs snapshot: {result.stderr.decode('utf-8')}",
+                err=True,
+            )
 
     # Load the string as a JSON object
     try:
         json_output = json.loads(output)
     except json.JSONDecodeError as e:
-        echo(f"Failed to decode JSON: {e}", err=True)
-        echo(f"Output was: {error}", err=True)
+        click.echo(f"Failed to decode JSON: {e}", err=True)
+        click.echo(f"Output was: {error}", err=True)
         exit(1)
 
     metrics = Metrics(default_registry=False)
@@ -187,4 +192,4 @@ def snapshot(path: str, zfs: str, override_source: str):
         json_output, "pushgateway.cluster.thealvistar.com", "kopia-gw"
     )
 
-    echo("Pushed metrics to pushgateway")
+    click.echo("Pushed metrics to pushgateway")
