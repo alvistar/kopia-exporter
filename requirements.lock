@@ -14,3 +14,5 @@ click==8.1.7
     # via kopia-exporter
 prometheus-client==0.20.0
     # via kopia-exporter
+pyyaml==6.0.2
+    # via kopia-exporter

@@ -3,8 +3,8 @@ import click
 import subprocess
 import logging
 from typing import Dict, List
-
 import time
+import yaml
 
 from kopia_exporter.metrics import Metrics
 
@@ -95,9 +95,22 @@ def refresh_data(config_file: str) -> List[Dict[str, any]]:
 # ]
 
 
+def load_config(config_file: str) -> Dict:
+    with open(config_file, "r") as f:
+        return yaml.safe_load(f)
+
+
 @click.group()
-def main():
-    pass
+@click.option(
+    "--conf", type=click.Path(exists=True), help="Path to the YAML configuration file"
+)
+@click.pass_context
+def main(ctx, conf):
+    ctx.ensure_object(dict)
+    if conf:
+        ctx.obj["config"] = load_config(conf)
+    else:
+        ctx.obj["config"] = {}
 
 
 @main.command()
@@ -129,9 +142,22 @@ def server(port, config_file):
 @click.argument("path", type=click.Path())
 @click.option("--zfs", "-z", help="Zfs snapshot to create.")
 @click.option("--override-source", "-o", help="Override source path", type=click.Path())
-@click.option("--job", default="kopia", help="Job name for the pushgateway")
-@click.option("--pushgateway", required=True, help="Pushgateway host URL")
-def snapshot(path: str, zfs: str, override_source: str, job: str, pushgateway: str):
+@click.option("--job", help="Job name for the pushgateway")
+@click.option("--pushgateway", help="Pushgateway host URL")
+@click.pass_context
+def snapshot(
+    ctx, path: str, zfs: str, override_source: str, job: str, pushgateway: str
+):
+    config = ctx.obj["config"]
+    job = job or config.get("job", "kopia")
+    pushgateway = pushgateway or config.get("pushgateway")
+
+    if not pushgateway:
+        click.echo(
+            "Pushgateway URL is required. Provide it via --pushgateway or in the config file.",
+            err=True,
+        )
+        exit(1)
     """Create a kopia snapshot.
 
     This will run kopia snapshot and send metrics to prometheus pushgateway

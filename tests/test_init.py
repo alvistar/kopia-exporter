@@ -1,5 +1,6 @@
 import traceback
 import pytest
+import yaml
 from unittest.mock import call, patch, MagicMock, ANY
 from click.testing import CliRunner
 from kopia_exporter import main
@@ -41,9 +42,20 @@ def runner():
     return CliRunner()
 
 
+@pytest.fixture
+def mock_config_file(tmp_path):
+    config = {"job": "test-job", "pushgateway": "http://test-pushgateway:9091"}
+    config_file = tmp_path / "test_config.yaml"
+    with open(config_file, "w") as f:
+        yaml.dump(config, f)
+    return str(config_file)
+
+
 @patch("subprocess.run")
 @patch("kopia_exporter.metrics.Metrics.update_and_push")
-def test_snapshot_success(update_and_push, mock_subprocess_run, runner):
+def test_snapshot_success(
+    update_and_push, mock_subprocess_run, runner, mock_config_file
+):
     # Mock the subprocess.run to simulate successful commands
     mock_subprocess_run.side_effect = [
         MagicMock(returncode=0, stdout=b"{}", stderr=b""),
@@ -51,9 +63,12 @@ def test_snapshot_success(update_and_push, mock_subprocess_run, runner):
         MagicMock(returncode=0, stdout=b"{}", stderr=b""),
     ]
 
+    # noinspection PyTypeChecker
     result = runner.invoke(
         main,
         [
+            "--conf",
+            mock_config_file,
             "snapshot",
             "/path/to/snapshot",
             "--zfs",
@@ -81,7 +96,7 @@ def test_snapshot_success(update_and_push, mock_subprocess_run, runner):
 
     mock_subprocess_run.assert_has_calls(expected_calls, any_order=False)
     update_and_push.assert_called_once_with(
-        ANY, "pushgateway.cluster.thealvistar.com", "kopia-gw"
+        ANY, "http://test-pushgateway:9091", "test-job"
     )
 
 
@@ -93,6 +108,7 @@ def test_snapshot_success_without_zfs(update_and_push, mock_subprocess_run, runn
         MagicMock(returncode=0, stdout=KOPIA_JSON.encode(), stderr=b""),
     ]
 
+    # noinspection PyTypeChecker
     result = runner.invoke(main, ["snapshot", "/path/to/snapshot"])
 
     # Check if an exception occurred and print the traceback
@@ -123,6 +139,7 @@ def test_snapshot_kopia_error(update_and_push, mock_subprocess_run, runner):
         MagicMock(returncode=1, stdout=b"", stderr=b"Kopia snapshot error"),
     ]
 
+    # noinspection PyTypeChecker
     result = runner.invoke(main, ["snapshot", "/path/to/snapshot"])
 
     assert result.exit_code == 1
@@ -137,6 +154,57 @@ def test_snapshot_kopia_error(update_and_push, mock_subprocess_run, runner):
     ]
 
     mock_subprocess_run.assert_has_calls(expected_calls, any_order=False)
+    update_and_push.assert_not_called()
+
+
+@patch("subprocess.run")
+@patch("kopia_exporter.metrics.Metrics.update_and_push")
+def test_snapshot_with_cli_override(
+    update_and_push, mock_subprocess_run, runner, mock_config_file
+):
+    mock_subprocess_run.return_value = MagicMock(
+        returncode=0, stdout=KOPIA_JSON.encode(), stderr=b""
+    )
+
+    # noinspection PyTypeChecker
+    result = runner.invoke(
+        main,
+        [
+            "--conf",
+            mock_config_file,
+            "snapshot",
+            "/path/to/snapshot",
+            "--job",
+            "cli-job",
+            "--pushgateway",
+            "http://cli-pushgateway:9091",
+        ],
+    )
+
+    assert result.exit_code == 0
+    update_and_push.assert_called_once_with(
+        ANY, "http://cli-pushgateway:9091", "cli-job"
+    )
+
+
+@patch("subprocess.run")
+@patch("kopia_exporter.metrics.Metrics.update_and_push")
+def test_snapshot_without_pushgateway(update_and_push, mock_subprocess_run, runner):
+    mock_subprocess_run.return_value = MagicMock(
+        returncode=0, stdout=KOPIA_JSON.encode(), stderr=b""
+    )
+
+    # noinspection PyTypeChecker
+    result = runner.invoke(
+        main,
+        [
+            "snapshot",
+            "/path/to/snapshot",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "Pushgateway URL is required" in result.output
     update_and_push.assert_not_called()
 
 
