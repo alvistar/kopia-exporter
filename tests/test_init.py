@@ -115,5 +115,30 @@ def test_snapshot_success_without_zfs(update_and_push, mock_subprocess_run, runn
     )
 
 
+@patch("subprocess.run")
+@patch("kopia_exporter.metrics.Metrics.update_and_push")
+def test_snapshot_kopia_error(update_and_push, mock_subprocess_run, runner):
+    # Mock the subprocess.run to simulate a failed kopia snapshot command
+    mock_subprocess_run.side_effect = [
+        MagicMock(returncode=1, stdout=b"", stderr=b"Kopia snapshot error"),
+    ]
+
+    result = runner.invoke(main, ["snapshot", "/path/to/snapshot"])
+
+    assert result.exit_code == 1
+    assert "Failed to create snapshot: Kopia snapshot error" in result.output
+
+    expected_calls = [
+        call(
+            "kopia snapshot create --json /path/to/snapshot",
+            shell=True,
+            capture_output=True,
+        ),
+    ]
+
+    mock_subprocess_run.assert_has_calls(expected_calls, any_order=False)
+    update_and_push.assert_not_called()
+
+
 if __name__ == "__main__":
     pytest.main()
