@@ -130,7 +130,8 @@ def server(port, config_file):
 @click.option("--zfs", "-z", help="Zfs snapshot to create.")
 @click.option("--override-source", "-o", help="Override source path", type=click.Path())
 @click.option("--job", default="kopia", help="Job name for the pushgateway")
-def snapshot(path: str, zfs: str, override_source: str, job: str):
+@click.option("--pushgateway", required=True, help="Pushgateway host URL")
+def snapshot(path: str, zfs: str, override_source: str, job: str, pushgateway: str):
     """Create a kopia snapshot.
 
     This will run kopia snapshot and send metrics to prometheus pushgateway
@@ -189,8 +190,6 @@ def snapshot(path: str, zfs: str, override_source: str, job: str):
         exit(1)
 
     metrics = Metrics(default_registry=False)
-    metrics.update_and_push(
-        json_output, "pushgateway.cluster.thealvistar.com", job
-    )
+    metrics.update_and_push(json_output, pushgateway, job)
 
     click.echo("Pushed metrics to pushgateway")
