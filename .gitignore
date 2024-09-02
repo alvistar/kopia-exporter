@@ -11,3 +11,9 @@ wheels/
 
 # venv
 .venv
+
+# aider
+.aider*
+
+# vscode
+.vscode

@@ -127,14 +127,33 @@ def server(port, config_file):
 
 @main.command()
 @click.argument("path", type=click.Path())
-def snapshot(path):
+@click.option("--zfs", "-z", help="Zfs snapshot to create.")
+@click.option("--override-source", "-o", help="Override source path", type=click.Path())
+def snapshot(path: str, zfs: str, override_source: str):
     """Create a kopia snapshot.
 
     This will run kopia snapshot and send metrics to prometheus pushgateway
     :return:
     """
-    logging.info("Creating snapshot...")
-    command = f"kopia snapshot create --json {path}"
+
+    if zfs:
+        logging.info(f"Creating zfs snapshot {zfs}...")
+        command = f"zfs snapshot {zfs}"
+        result = subprocess.run(command, shell=True, capture_output=True)
+
+        if result.returncode != 0:
+            logging.error(
+                f"Failed to create zfs snapshot: {result.stderr.decode('utf-8')}"
+            )
+            exit(1)
+
+    logging.info("Creating kopia snapshot...")
+    command = "kopia snapshot create --json"
+
+    if override_source:
+        command += f" --override-source {override_source}"
+
+    command += f" {path}"
 
     result = subprocess.run(command, shell=True, capture_output=True)
 
@@ -146,7 +165,17 @@ def snapshot(path):
         logging.error(f"Failed to create snapshot: {error}")
         exit(1)
 
-    logging.info("Finished creating snapshot")
+    logging.info("Finished creating kopia snapshot")
+
+    if zfs:
+        logging.info(f"Destroying zfs snapshot {zfs}...")
+        command = f"zfs destroy {zfs}"
+        result = subprocess.run(command, shell=True, capture_output=True)
+
+        if result.returncode != 0:
+            logging.warn(
+                f"Failed to destroy zfs snapshot: {result.stderr.decode('utf-8')}"
+            )
 
     # Load the string as a JSON object
     try:
