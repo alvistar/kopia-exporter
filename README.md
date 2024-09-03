@@ -80,10 +80,15 @@ python -m kopia_exporter --conf config.yaml snapshot /path/to/backup
 
 ## Metrics
 
-kopia-exporter exports the following metrics:
+kopia-exporter exports[metrics.py](src%2Fkopia_exporter%2Fmetrics.py) the following metrics:
 
 - `total_size`: Total size of the backup
 - `file_count`: Number of files in the backup
+- `dir_count`: Number of directories in the backup
+- `error_count`: Number of errors in the backup
+- `backup_duration`: Duration of the backup in seconds
+- `backup_start_time`: Start time of the backup (Unix timestamp)
+- `backup_end_time`: End time of the backup (Unix timestamp)
 
 These metrics are labeled with `host`, `path`, and `user` to identify the source of the backup.
 
