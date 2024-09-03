@@ -1,6 +1,6 @@
 [project]
 name = "kopia-exporter"
-version = "0.1.0"
+version = "0.1.1"
 description = "Kopia Prometheus Exporter"
 authors = [
     { name = "avigano", email = "alvistar@gmail.com" }
