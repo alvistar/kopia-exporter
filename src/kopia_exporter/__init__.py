@@ -118,7 +118,10 @@ def main(ctx, conf):
 @click.option(
     "--config-file", default="", help="The kopia config file to use.", type=click.Path()
 )
-def server(port, config_file):
+@click.option(
+    "--refresh-interval", default=600, help="Refresh interval in seconds.", type=int
+)
+def server(port, config_file, refresh_interval):
     """Run in server mode.
 
     This will run th exporter in server mode and will pull data from kopia repository
@@ -134,8 +137,8 @@ def server(port, config_file):
         for entry in data:
             metrics.update_metrics(entry)
 
-        # Sleep for a bit before the next update (simulate periodic updates)
-        time.sleep(600)
+        # Sleep for the specified refresh interval before the next update
+        time.sleep(refresh_interval)
 
 
 @main.command()
