@@ -5,6 +5,7 @@ import logging
 from typing import Dict, List
 import time
 import yaml
+from datetime import datetime
 
 from kopia_exporter.metrics import Metrics
 
@@ -23,12 +24,17 @@ def refresh_data(config_file: str) -> List[Dict[str, any]]:
 
     logging.info(f"Running command: {command}")
 
+    start_time = datetime.now()
+
     # Run the command and capture the output
     result = subprocess.run(
         command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
 
-    logging.info("Finish refreshing data")
+    end_time = datetime.now()
+    duration = (end_time - start_time).total_seconds()
+
+    logging.info(f"Finished refreshing data. Duration: {duration:.2f} seconds")
 
     # Decode the output from bytes to string
     output = result.stdout.decode("utf-8")
