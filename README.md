@@ -8,6 +8,23 @@ kopia-exporter is a tool that exports metrics from Kopia backups to Prometheus. 
 
 ## Installation
 
+### Option 1: Using pipx (Recommended)
+
+1. Ensure you have pipx installed on your system. If not, you can install it using pip:
+   ```
+   pip install pipx
+   pipx ensurepath
+   ```
+
+2. Install kopia-exporter using pipx:
+   ```
+   pipx install git+https://github.com/yourusername/kopia-exporter.git
+   ```
+
+This method installs kopia-exporter in an isolated environment and makes it available globally.
+
+### Option 2: Manual Installation
+
 1. Ensure you have Python 3.7+ installed on your system.
 
 2. Clone the repository:
