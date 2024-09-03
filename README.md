@@ -116,6 +116,41 @@ These metrics are labeled with `host`, `path`, and `user` to identify the source
 - Prometheus server (for server mode)
 - Prometheus Pushgateway (for snapshot mode)
 
+## Systemd Service Installation
+
+To run kopia-exporter as a systemd service, follow these steps:
+
+1. Copy the systemd unit file to the systemd directory:
+   ```
+   sudo cp utils/kopia-exporter.service /etc/systemd/system/
+   ```
+
+2. Edit the unit file to match your configuration:
+   ```
+   sudo nano /etc/systemd/system/kopia-exporter.service
+   ```
+   Update the `ExecStart` line with the correct path to kopia-exporter and your desired options.
+
+3. Reload the systemd daemon:
+   ```
+   sudo systemctl daemon-reload
+   ```
+
+4. Enable the service to start on boot:
+   ```
+   sudo systemctl enable kopia-exporter.service
+   ```
+
+5. Start the service:
+   ```
+   sudo systemctl start kopia-exporter.service
+   ```
+
+6. Check the status of the service:
+   ```
+   sudo systemctl status kopia-exporter.service
+   ```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
